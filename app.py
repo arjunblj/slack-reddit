@@ -25,7 +25,7 @@ def parse_reddit(subreddit, sort='hot', top_num=5):
             data.append(dict(url=result.url, score=result.score, title=result.title))
         return dict(data=data)
     except praw.errors.InvalidSubreddit:
-        return dict(data='Specify a subreddit that exists!')
+        return Response('Specify a subreddit that exists!', content_type='text/plain; charset=utf-8')
 
 
 def parse_terms(terms):
@@ -38,13 +38,14 @@ def parse_terms(terms):
                 option = int(option)
                 return parse_reddit(terms[0], 'hot', option)
             except ValueError:
-                return dict(data='Invalid search, check your options.')
+                return Response('Invalid search, check your options.',
+                    content_type='text/plain; charset=utf-8')
     elif len(terms) is 3:
         sort_type, top_num = terms[1], int(terms[2])
         if sort_type in SORT_TYPES.keys() and isinstance(top_num, int):
             return parse_reddit(terms[0], sort_type, top_num)
         else:
-            return dict(data='Invalid search option. Try: hot (default), new, rising, or top.')
+            return Response('Invalid search option. Try: hot (default), new, rising, or top.')
 
 
 @app.route('/search', methods=['post'])
@@ -58,9 +59,11 @@ def search():
         try:
             resp = parse_terms(terms)
         except:
-            resp = dict(data='Sorry, your request was incorrect')
-    return jsonify(resp)
-
+            resp = Response('Sorry, your request was incorrect', content_type='text/plain; charset=utf-8')
+    if isinstance(resp, dict):
+        return jsonify(resp)
+    else:
+        return resp
 
 @app.route('/')
 def hello():
