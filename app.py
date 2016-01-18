@@ -16,10 +16,6 @@ SORT_TYPES = {
 }
 
 
-# def format_response_string(resp):
-#     return Response(data, content_type='text/plain; charset=utf-8')
-
-
 def parse_reddit(subreddit, sort='hot', top_num=5):
     try:
         sub = Reddit.get_subreddit(subreddit)
@@ -31,6 +27,15 @@ def parse_reddit(subreddit, sort='hot', top_num=5):
         return Response(data, content_type='text/plain; charset=utf-8')
     except praw.errors.InvalidSubreddit:
         return Response('Specify a subreddit that exists!', content_type='text/plain; charset=utf-8')
+
+
+def help_option():
+    help_text = """In order to use, you must specify a subreddit and can specify the type (hot [default], rising, new, or top), the number of results displayed or both! Some valid queries:
+    */reddit nba 5
+    */reddit nfl rising 12
+    */reddit oddlysatisfying rising 12
+Tweet @arjunblj if you have any other questions (or bugs) -- enjoy!"""
+    return Response(help_text, content_type='text/plain; charset=utf-8')
 
 
 def parse_terms(terms):
@@ -61,7 +66,10 @@ def search():
     if len(terms) is 0 or not terms[0]:
         return Response('You need to specify an option: try /reddit nba.', content_type='text/plain; charset=utf-8')
     elif len(terms) is 1:
-        return parse_reddit(terms[0])
+        if terms[0] == 'help':
+            return help_option()
+        else:
+            return parse_reddit(terms[0])
     else:
         try:
             return parse_terms(terms)
