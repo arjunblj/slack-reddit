@@ -16,14 +16,19 @@ SORT_TYPES = {
 }
 
 
+# def format_response_string(resp):
+#     return Response(data, content_type='text/plain; charset=utf-8')
+
+
 def parse_reddit(subreddit, sort='hot', top_num=5):
     try:
         sub = Reddit.get_subreddit(subreddit)
         resp = getattr(sub, SORT_TYPES[sort])(limit=top_num)
-        data = []
-        for result in resp:
-            data.append(dict(url=result.url, score=result.score, title=result.title))
-        return dict(data=data)
+        data = ''
+        for i, post in enumerate(resp):
+            post_number = i + 1
+            data += ("%s. *[%s]* <%s|%s>\n" % (post_number, post.score, post.url, post.title))
+        return Response(data, content_type='text/plain; charset=utf-8')
     except praw.errors.InvalidSubreddit:
         return Response('Specify a subreddit that exists!', content_type='text/plain; charset=utf-8')
 
@@ -60,10 +65,8 @@ def search():
             resp = parse_terms(terms)
         except:
             resp = Response('Sorry, your request was incorrect', content_type='text/plain; charset=utf-8')
-    if isinstance(resp, dict):
-        return jsonify(resp)
-    else:
-        return resp
+    return resp
+
 
 @app.route('/')
 def hello():
