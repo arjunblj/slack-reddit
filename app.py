@@ -2,7 +2,7 @@
 import os
 import praw
 
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, redirect, request, Response
 
 
 app = Flask(__name__)
@@ -25,21 +25,26 @@ def parse_reddit(subreddit, sort='hot', top_num=5):
             data.append(dict(url=result.url, score=result.score, title=result.title))
         return dict(data=data)
     except praw.errors.InvalidSubreddit:
-        return dict(data='Invalid Subreddit')
+        return dict(data='Specify a subreddit that exists!')
 
 
 def parse_terms(terms):
     if len(terms) is 2:
-        sort_type = terms[1]
-        if sort_type in SORT_TYPES.keys():
-            return parse_reddit(terms[0], sort_type)
+        option = terms[1]
+        if option in SORT_TYPES.keys():
+            return parse_reddit(terms[0], option)
+        else:
+            try:
+                option = int(option)
+                return parse_reddit(terms[0], 'hot', option)
+            except ValueError:
+                return dict(data='Invalid search, check your options.')
     elif len(terms) is 3:
-        try:
-            sort_type, top_num = terms[1], int(terms[2])
-            if sort_type in SORT_TYPES.keys() and isinstance(top_num, int):
-                return parse_reddit(terms[0], sort_type, top_num)
-        except:
-            return dict(data='Invalid search')
+        sort_type, top_num = terms[1], int(terms[2])
+        if sort_type in SORT_TYPES.keys() and isinstance(top_num, int):
+            return parse_reddit(terms[0], sort_type, top_num)
+        else:
+            return dict(data='Invalid search option. Try: hot (default), new, rising, or top.')
 
 
 @app.route('/search', methods=['post'])
@@ -59,7 +64,7 @@ def search():
 
 @app.route('/')
 def hello():
-    return 'hello!'
+    return redirect('https://github.com/arjunblj/slack-reddit')
 
 
 if __name__ == '__main__':
