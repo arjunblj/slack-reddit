@@ -58,14 +58,15 @@ def search():
     """i.e. /reddit nba rising 10
     """
     terms = request.values.get('text').split(' ')
-    if len(terms) is 1:
-        resp = parse_reddit(terms[0])
+    if len(terms) is 0 or not terms[0]:
+        return Response('You need to specify an option: try /reddit nba.', content_type='text/plain; charset=utf-8')
+    elif len(terms) is 1:
+        return parse_reddit(terms[0])
     else:
         try:
-            resp = parse_terms(terms)
+            return parse_terms(terms)
         except:
-            resp = Response('Sorry, your request was incorrect', content_type='text/plain; charset=utf-8')
-    return resp
+            return Response('Sorry, your request was incorrect', content_type='text/plain; charset=utf-8')
 
 
 @app.route('/')
