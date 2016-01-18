@@ -22,24 +22,24 @@ def parse_reddit(subreddit, sort='hot', top_num=5):
         resp = getattr(sub, SORT_TYPES[sort])(limit=top_num)
         data = []
         for result in resp:
-            data.append(dict(url = result.url, score = result.score, title = result.title))
+            data.append(dict(url=result.url, score=result.score, title=result.title))
         return dict(data=data)
     except praw.errors.InvalidSubreddit:
-        return 'Invalid Subreddit'
+        return dict(data='Invalid Subreddit')
 
 
-def check_error(terms):
+def parse_terms(terms):
     if len(terms) is 2:
         sort_type = terms[1]
         if sort_type in SORT_TYPES.keys():
-            parse_reddit(terms[0], sort_type)
+            return parse_reddit(terms[0], sort_type)
     elif len(terms) is 3:
         try:
             sort_type, top_num = terms[1], int(terms[2])
             if sort_type in SORT_TYPES.keys() and isinstance(top_num, int):
-                parse_reddit(terms[0], sort_type, top_num)
+                return parse_reddit(terms[0], sort_type, top_num)
         except:
-            return 'Invalid search'
+            return dict(data='Invalid search')
 
 
 @app.route('/search', methods=['post'])
@@ -50,7 +50,10 @@ def search():
     if len(terms) is 1:
         resp = parse_reddit(terms[0])
     else:
-        check_error(terms)
+        try:
+            resp = parse_terms(terms)
+        except:
+            resp = dict(data='Sorry, your request was incorrect')
     return jsonify(resp)
 
 
