@@ -2,7 +2,7 @@
 import os
 import praw
 
-from flask import Flask, jsonify, redirect, request, Response
+from flask import Flask, redirect, request, Response
 
 
 app = Flask(__name__)
@@ -16,65 +16,82 @@ SORT_TYPES = {
 }
 
 
-def parse_reddit(subreddit, sort='hot', top_num=5):
+def _create_response(text):
+    """Returns a utf-8 encoded text response.
+    """
+    return Response(text, content_type='text/plain; charset=utf-8')
+
+
+def _parse_options(options):
+    """Returns a Response after validating the input.
+    """
+    if options[1] in SORT_TYPES.keys():
+        sort_type = options[1]
+        if len(options) > 2:
+            subreddit, sort_type, num_results = options
+            try:
+                num_results = int(num_results)
+                return fetch_posts(subreddit, sort_type, num_results)
+            except ValueError:
+                # Third option is invalid.
+                response_text = ("Sorry! `%s` isn't a valid sorting number. Try `/reddit %s %s 5`"
+                                 % (subreddit, sort_type, num_results))
+                return _create_response(response_text)
+        else:
+            # No option for results to return.
+            return fetch_posts(options[0], sort_type)
+    else:
+        if isinstance(options[1], int):
+            # For the case that someone passes `/reddit [subreddit] [sort_num]`
+            return fetch_posts(options[0], 'hot', options[1])
+        else:
+            return _create_response('Invalid search. Try `/reddit aww top 5` or `/reddit help`.')
+
+
+def fetch_posts(subreddit, sort='hot', top_num=5):
+    """Fetch post information from a subreddit given the options.
+    """
     try:
         sub = Reddit.get_subreddit(subreddit)
         resp = getattr(sub, SORT_TYPES[sort])(limit=top_num)
         data = ''
         for i, post in enumerate(resp):
             post_number = i + 1
-            data += ("%s. *[%s]* <%s|%s>\n" % (post_number, post.score, post.url, post.title))
-        return Response(data, content_type='text/plain; charset=utf-8')
+            data += ("%s. *[%s]* <%s|%s>\n" %
+                     (post_number, post.score, post.url, post.title))
+        return _create_response(data)
     except praw.errors.InvalidSubreddit:
-        return Response('Specify a subreddit that exists!', content_type='text/plain; charset=utf-8')
+        return _create_response('Specify a subreddit that exists!')
 
 
 def help_option():
+    """Return text for `/reddit help`
+    """
     help_text = """In order to use, you must specify a subreddit and can specify the type (hot [default], rising, new, or top), the number of results displayed or both! Some valid queries:
-    */reddit nba 5
-    */reddit nfl rising 12
-    */reddit oddlysatisfying rising 12
+    `/reddit nba 5`
+    `/reddit nfl rising 12`
+    `/reddit oddlysatisfying rising 12`
 Tweet @arjunblj if you have any other questions (or bugs) -- enjoy!"""
     return Response(help_text, content_type='text/plain; charset=utf-8')
-
-
-def parse_terms(terms):
-    if len(terms) is 2:
-        option = terms[1]
-        if option in SORT_TYPES.keys():
-            return parse_reddit(terms[0], option)
-        else:
-            try:
-                option = int(option)
-                return parse_reddit(terms[0], 'hot', option)
-            except ValueError:
-                return Response('Invalid search, check your options.',
-                    content_type='text/plain; charset=utf-8')
-    elif len(terms) is 3:
-        sort_type, top_num = terms[1], int(terms[2])
-        if sort_type in SORT_TYPES.keys() and isinstance(top_num, int):
-            return parse_reddit(terms[0], sort_type, top_num)
-        else:
-            return Response('Invalid search option. Try: hot (default), new, rising, or top.')
 
 
 @app.route('/search', methods=['post'])
 def search():
     """i.e. /reddit nba rising 10
     """
-    terms = request.values.get('text').split(' ')
-    if len(terms) is 0 or not terms[0]:
-        return Response('You need to specify an option: try /reddit nba.', content_type='text/plain; charset=utf-8')
-    elif len(terms) is 1:
-        if terms[0] == 'help':
+    options = request.values.get('text').split(' ')
+    if not options[0]:
+        _create_response('You need to specify an option: try `/reddit aww top 5`.')
+    elif len(options) is 1:
+        if options[0] == 'help':
             return help_option()
         else:
-            return parse_reddit(terms[0])
+            return fetch_posts(options[0])
     else:
         try:
-            return parse_terms(terms)
+            return _parse_options(options)
         except:
-            return Response('Sorry, your request was incorrect', content_type='text/plain; charset=utf-8')
+            return _create_response('Sorry, your request was incorrect.')
 
 
 @app.route('/')
