@@ -48,16 +48,32 @@ def _parse_options(options):
             return _create_response('Invalid search. Try `/reddit aww top 5` or `/reddit help`.')
 
 
+def _get_post_header(subreddit, sort, top_num):
+    """Formats the top heading to make it a bit more readable.
+    """
+    url = 'http://reddit.com/r/%r' % (subreddit)
+    if sort == 'new':
+        heading = '%s Newest Posts from' % (top_num)
+    elif sort == 'top':
+        heading = 'Top %s Posts from' % (top_num)
+    elif sort == 'rising':
+        heading = '%s Fastest Rising Posts' % (top_num)
+    else:
+        heading = '%s Hottest Posts' % (top_num)
+    heading += ' from <%r|/r/%s>\n' % (url, subreddit)
+    return heading
+
+
 def fetch_posts(subreddit, sort='hot', top_num=5):
     """Fetch post information from a subreddit given the options.
     """
     try:
         sub = Reddit.get_subreddit(subreddit)
         resp = getattr(sub, SORT_TYPES[sort])(limit=top_num)
-        data = ''
+        data = _get_post_header(subreddit, sort, top_num)
         for i, post in enumerate(resp):
             post_number = i + 1
-            data += ("%s. *[%s]* <%s|%s>\n" %
+            data += ('%s. *[%s]* <%s|%s>\n' %
                      (post_number, post.score, post.url, post.title))
         return _create_response(data)
     except praw.errors.InvalidSubreddit:
@@ -68,9 +84,9 @@ def help_option():
     """Return text for `/reddit help`
     """
     help_text = """In order to use, you must specify a subreddit and can specify the type (hot [default], rising, new, or top), the number of results displayed or both! Some valid queries:
-    `/reddit nba 5`
-    `/reddit nfl rising 12`
-    `/reddit oddlysatisfying rising 12`
+    `/reddit aww 5`
+    `/reddit nba`
+    `/reddit oddlysatisfying new 4`
 Tweet @arjunblj if you have any other questions (or bugs) -- enjoy!"""
     return Response(help_text, content_type='text/plain; charset=utf-8')
 
