@@ -51,7 +51,7 @@ def _parse_options(options):
 def _get_post_header(subreddit, sort, top_num):
     """Formats the top heading to make it a bit more readable.
     """
-    url = 'http://reddit.com/r/%r' % (subreddit)
+    url = 'http://reddit.com/r/' + subreddit
     if sort == 'new':
         heading = '%s Newest Posts from' % (top_num)
     elif sort == 'top':
@@ -60,7 +60,7 @@ def _get_post_header(subreddit, sort, top_num):
         heading = '%s Fastest Rising Posts' % (top_num)
     else:
         heading = '%s Hottest Posts' % (top_num)
-    heading += ' from <%r|/r/%s>\n' % (url, subreddit)
+    heading += ' <%s|/r/%s>\n' % (url, subreddit)
     return heading
 
 
